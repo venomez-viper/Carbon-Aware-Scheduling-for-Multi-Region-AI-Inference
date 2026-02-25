@@ -3,3 +3,10 @@ data/
 __pycache__/
 *.pyc
 .DS_Store
+
+# Allow outputs for team visibility
+!outputs/
+!outputs/graphs/
+!outputs/graphs/*.png
+!outputs/tables/
+!outputs/tables/*.csv

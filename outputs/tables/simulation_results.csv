@@ -1,0 +1,8 @@
+Policy,Avg Latency (ms),P95 Latency (ms),SLO Violation Rate (%),Avg Carbon (gCO2eq/kWh),Carbon Reduction,US-East,US-West,EU-West,EU-North,Singapore
+Latency-First,37.5,79.5,0.0,268.7,0.0,13419,6739,8435,0,5007
+Carbon-First,132.7,225.9,71.11,24.9,90.7,0,0,0,33600,0
+Hybrid (α=0.2),102.6,201.1,51.17,35.7,86.7,0,6739,0,26861,0
+Hybrid (α=0.3),102.6,201.2,51.02,35.7,86.7,0,6739,0,26861,0
+Hybrid (α=0.5),101.7,201.1,48.41,37.1,86.2,0,7782,0,25818,0
+Hybrid (α=0.7),62.8,127.5,1.33,117.7,56.2,1412,18746,0,8435,5007
+Constrained Hybrid,65.9,137.6,1.01,108.6,59.6,302,18490,0,9801,5007

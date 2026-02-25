@@ -1,9 +1,84 @@
 # Carbon-Aware Scheduling for Multi-Region AI Inference
 
 ## Overview
-This project implements a simulation framework for routing AI inference requests across multiple cloud regions. It evaluates the trade-offs between network latency, SLO violations, and carbon intensity by testing various scheduling policies (Latency-First, Carbon-First, and Hybrid). The framework also supports multiple AI workloads (e.g., BERT-base, BERT-large, ResNet-50), each with specific SLOs and performance profiles.
+This project implements a simulation framework for routing AI inference requests across multiple cloud regions. It evaluates the trade-offs between network latency, SLO violations, and carbon intensity by testing various scheduling policies (Latency-First, Carbon-First, and Hybrid). The framework supports multiple AI workloads (BERT-base, BERT-large, ResNet-50), each with specific SLOs and performance profiles.
 
-## Quick Start
+**Team:** Akash Anipakalu Giridhar · Brandon Youngkrantz · Alexandre Corret · Yogith Ramanan
+
+---
+
+## 📊 Latest Simulation Results
+
+> Last updated: February 24, 2026 · 7-day simulation · 33,600 total requests
+
+### Policy Comparison (Aggregate)
+
+| Policy | Avg Latency (ms) | P95 Latency (ms) | SLO Violation % | Avg Carbon (gCO₂eq/kWh) | Carbon Reduction |
+|--------|-----------------|-----------------|-----------------|-------------------------|-----------------|
+| Latency-First *(baseline)* | 37.5 | 79.5 | 0.0% | 268.7 | 0% |
+| Carbon-First | 132.7 | 225.9 | 71.1% | 24.9 | **90.7%** |
+| Hybrid α=0.2 | 102.6 | 201.1 | 51.2% | 35.7 | 86.7% |
+| Hybrid α=0.3 | 102.6 | 201.2 | 51.0% | 35.7 | 86.7% |
+| Hybrid α=0.5 | 101.7 | 201.1 | 48.4% | 37.1 | 86.2% |
+| **Hybrid α=0.7** | **62.8** | **127.5** | **1.3%** | 117.7 | **56.2%** |
+| **Constrained Hybrid** ✅ | **65.9** | **137.6** | **1.0%** | 108.6 | **59.6%** |
+
+> ✅ **Recommendation:** The **Constrained Hybrid** policy delivers the best balance — 59.6% carbon reduction with only 1.0% SLO violations. Hybrid α=0.7 is nearly equivalent.
+
+### Per-Workload Breakdown
+
+| Policy | BERT-base SLO Violation | BERT-large SLO Violation | ResNet-50 SLO Violation |
+|--------|------------------------|-------------------------|------------------------|
+| Latency-First | 0.0% | 0.0% | 0.0% |
+| Constrained Hybrid | 0.02% | 1.38% | 5.88% |
+| Hybrid α=0.7 | 0.02% | 0.98% | 10.47% |
+| Carbon-First | 74.9% | 62.5% | 74.8% |
+
+---
+
+## 📈 Generated Figures
+
+### Figure 1 — Regional Carbon Intensity & Latency
+![Figure 1: Regional Carbon and Latency](outputs/graphs/regional_carbon_latency.png)
+
+*EU-North (25 gCO₂eq/kWh) and US-West (79 gCO₂eq/kWh) are the lowest-carbon options but add 90–170 ms latency for US-based users.*
+
+---
+
+### Figure 2 — Carbon–Latency Trade-off Curve (Pareto)
+![Figure 2: Pareto Trade-off Curve](outputs/graphs/tradeoff_curve.png)
+
+*Hybrid α=0.7 and Constrained Hybrid sit in the viable zone (SLO violations < 5%) while delivering >56% carbon reduction.*
+
+---
+
+### Figure 3 — Request Routing Distribution by Policy
+![Figure 3: Routing Distribution](outputs/graphs/routing_distribution.png)
+
+*Latency-First routes most requests to nearby high-carbon regions. Carbon-First shifts majority to EU-North. Hybrid and Constrained Hybrid achieve a balanced distribution.*
+
+---
+
+### Figure 4 — Per-Workload SLO Violations
+![Figure 4: Per-Workload SLO Violations](outputs/graphs/workload_slo_violations.png)
+
+*ResNet-50 (80 ms SLO) is the most sensitive workload. Constrained Hybrid keeps all workloads below 6% violation.*
+
+---
+
+### Figure 5 — Hourly Carbon Intensity Traces (7-Day Simulation)
+![Figure 5: Carbon Traces](outputs/graphs/carbon_traces.png)
+
+*EU-North and US-West show consistent low-carbon profiles. Singapore and US-East remain high throughout.*
+
+---
+
+### Prior Work Comparison
+![Prior Work Comparison Table](outputs/graphs/prior_work_comparison.png)
+
+---
+
+## 🚀 Quick Start
 
 1. Clone the repository:
 ```bash
@@ -16,52 +91,49 @@ cd Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference
 pip install -r requirements.txt
 ```
 
-3. Run the baseline simulation:
+3. Run the simulation:
 ```bash
 cd src
 python simulation.py
 ```
 
-*Note: Researchers can override core constants cleanly via the command line interface without altering source files:*
+Optional overrides:
 ```bash
 python simulation.py --sim-hours 336 --reqs-per-hour 5000 --seed 42
 ```
 
-This generates summary tables and CSV files inside `outputs/tables/` and `data/` metrics.
-
-4. Generate figures:
+4. Generate all figures:
 ```bash
 python metrics.py
 ```
-This produces graphs representing carbon traces and trade-off curves in `outputs/graphs/` natively ready for academic publishing.
 
-## Advanced Configuration for Researchers
+Outputs go to `outputs/graphs/` (figures) and `outputs/tables/` (CSVs).
 
-### Adding Custom Routing Policies
-Researchers can evaluate their own heuristic or machine-learning-based schedulers by writing a new routing function and registering it in the `POLICIES` dictionary found at the bottom of `src/policies.py`. 
+---
 
-### Defining New AI Workloads or Cloud Regions
-The framework is fully modularized. If your study requires different cloud region models, varying latency topologies, or new generative AI payloads (e.g., Llama-3, GPT-4), you can define these natively within `src/config.py`. Update the `WORKLOADS` or `REGIONS` definitions, and the simulator matrices will dynamically adjust.
-
-## Repository Layout
+## 🗂️ Repository Layout
 
 ```text
 Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference/
 ├── src/
-│   ├── config.py          # Configuration for simulation
+│   ├── config.py          # Multi-workload configuration
 │   ├── policies.py        # Scheduling algorithms
 │   ├── simulation.py      # Main simulation driver
-│   └── metrics.py         # Visualization scripts
-├── data/
-│   ├── carbon/            # Carbon intensity traces (Generated)
-│   └── latency/           # User-to-region latency matrix (Generated)
+│   └── metrics.py         # Figure generation (6 plots)
 ├── outputs/
-│   ├── tables/            # Metrics summary tables (Generated)
-│   └── graphs/            # Trade-off curves and plots (Generated)
+│   ├── graphs/            # All generated figures (Figs 1–5 + comparison table)
+│   └── tables/            # simulation_results.csv, per_workload_results.csv
 ├── README.md
 └── requirements.txt
 ```
 
-## Reproducibility Statement
+---
 
-This repository contains all code and configuration needed to reproduce the results in our paper on carbon-aware scheduling for multi-region AI inference. Simulation parameters, region definitions, and workloads are directly specified in `src/config.py`. Running `src/simulation.py` followed by `src/metrics.py` will regenerate the exact evaluation tables and plot figures mirroring the manuscript.
+## Advanced Configuration
+
+- **Add custom policies:** Write a routing function in `src/policies.py` and register it in `src/simulation.py`.
+- **New workloads or regions:** Update `WORKLOADS` or `REGIONS` in `src/config.py` — the simulation adapts automatically.
+
+## Reproducibility
+
+All code, configuration, and output data are in this repository. Running `src/simulation.py` followed by `src/metrics.py` reproduces every figure and table exactly.
