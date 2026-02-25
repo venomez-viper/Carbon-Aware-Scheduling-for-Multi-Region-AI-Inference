@@ -1,225 +1,178 @@
-import os
-import logging
-import argparse
-from pathlib import Path
-from typing import Dict, List, Any
-
 import numpy as np
 import pandas as pd
+import os
+import argparse
+from config import *
+from policies import latency_first, carbon_first, hybrid_policy, constrained_hybrid
 
-from config import (
-    REGIONS, REGION_NAMES, USER_LOCATIONS, USER_PROBS,
-    LATENCY_MATRIX, WORKLOADS, WORKLOAD_NAMES, WORKLOAD_PROBS,
-    SIM_HOURS, REQS_PER_HOUR, SEED, JITTER
-)
-from policies import POLICIES
-
-# Setup basic logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger("CarbonSimulator")
-
-def generate_carbon_traces(seed: int = SEED, sim_hours: int = SIM_HOURS) -> pd.DataFrame:
-    """
-    Generates synthetic hourly carbon intensity traces for each region.
-    Uses a diurnal sine wave + random noise to simulate daily fluctuations.
-    """
-    logger.info("Generating carbon intensity traces...")
+def generate_carbon_traces(hours, seed=RANDOM_SEED):
     np.random.seed(seed)
+    carbon = {}
     
-    traces = {}
-    time_steps = np.arange(sim_hours)
-    
-    for region in REGION_NAMES:
-        base = REGIONS[region]['base_carbon']
-        # Simulated diurnal cycle: amplitude is 20% of base carbon, 24h period
-        diurnal_cycle = 0.2 * base * np.sin(2 * np.pi * time_steps / 24)
-        noise = np.random.normal(0, 0.05 * base, sim_hours)
-        
-        # Ensure carbon intensity is non-negative
-        trace = np.clip(base + diurnal_cycle + noise, a_min=0, a_max=None)
-        traces[region] = trace
-        
-    df = pd.DataFrame(traces)
-    df.index.name = 'hour'
-    
-    out_path = Path('../data/carbon/carbon_intensity_traces.csv')
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(out_path)
-    
-    return df
+    for region in REGIONS:
+        base = BASE_CARBON_INTENSITY[region]
+        vals = []
+        for h in range(hours):
+            hour_of_day = h % 24
+            diurnal = 1 + CARBON_DIURNAL_AMPLITUDE * np.sin(2 * np.pi * (hour_of_day - 6) / 24)
+            noise = np.random.uniform(1 - CARBON_RANDOM_NOISE_RANGE, 1 + CARBON_RANDOM_NOISE_RANGE)
+            vals.append(max(5, base * diurnal * noise))
+        carbon[region] = np.array(vals)
+    return pd.DataFrame(carbon)
 
-def export_latency_matrix() -> Dict[str, List[int]]:
-    """Exports the configuration latency matrix to CSV for reference."""
-    logger.info("Exporting latency matrix...")
-    df = pd.DataFrame(LATENCY_MATRIX, index=REGION_NAMES).T
-    df.index.name = 'user_location'
-    
-    out_path = Path('../data/latency/latency_matrix.csv')
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(out_path)
-    
-    return LATENCY_MATRIX
+def generate_requests(hours, rph, seed=RANDOM_SEED):
+    np.random.seed(seed)
+    total = rph * hours
+    req_hours = np.repeat(np.arange(hours), rph)
+    req_users = np.random.choice(
+        list(USER_DISTRIBUTION.keys()), size=total, p=list(USER_DISTRIBUTION.values())
+    )
+    req_workloads = np.random.choice(
+        get_workload_list(), size=total, p=get_workload_probabilities()
+    )
+    return req_hours, req_users, req_workloads
 
-def run_policy_simulation(
-    policy_name: str, 
-    policy_fn: callable, 
-    carbon_traces: pd.DataFrame, 
-    user_loc_indices: np.ndarray, 
-    workload_indices: np.ndarray,
-    sim_hours: int = SIM_HOURS,
-    reqs_per_hour: int = REQS_PER_HOUR
-) -> tuple:
-    """
-    Simulates a given routing policy over the synthesized workload requests.
-    Returns global metrics dict and a list of workload-specific metrics dicts.
-    """
-    logger.info(f"Evaluating policy: {policy_name}")
+def run_simulation(output_dir='../outputs', hours=SIMULATION_HOURS, rph=REQUESTS_PER_HOUR, seed=RANDOM_SEED):
+    os.makedirs(f'{output_dir}/tables', exist_ok=True)
+    os.makedirs(f'{output_dir}/data', exist_ok=True)
     
-    latencies_log = []
-    slo_violations = 0
-    total_carbon = 0.0
-    region_counts = {r: 0 for r in REGION_NAMES}
-    total_reqs = len(user_loc_indices)
+    carbon_df = generate_carbon_traces(hours, seed=seed)
+    ci_arr = carbon_df.values
     
-    # Per-workload tracking
-    wl_stats = {w: {'latencies': [], 'slo_violations': 0, 'count': 0} for w in WORKLOAD_NAMES}
+    req_hours, req_users, req_workloads = generate_requests(hours, rph, seed=seed)
+    total_requests = len(req_hours)
     
-    req_idx = 0
-    for hour in range(sim_hours):
-        current_carbons = carbon_traces.iloc[hour].values
+    lat_lookup = {}
+    for ul in USER_LOCATIONS:
+        lat_lookup[ul] = np.array([LATENCY_MATRIX.loc[ul, r] for r in REGIONS])
         
-        for _ in range(reqs_per_hour):
-            u_idx = user_loc_indices[req_idx]
-            w_idx = workload_indices[req_idx]
-            req_idx += 1
+    policy_configs = [
+        ('Latency-First', 'latency_first', None),
+        ('Carbon-First', 'carbon_first', None),
+    ]
+    for alpha in HYBRID_ALPHA_VALUES:
+        policy_configs.append((f'Hybrid (\u03b1={alpha})', 'hybrid', alpha))
+    policy_configs.append(('Constrained Hybrid', 'constrained', None))
+    
+    results = {}
+    detailed_results = {}
+    rng = np.random.default_rng(seed)
+    
+    for label, ptype, alpha in policy_configs:
+        latencies = np.zeros(total_requests)
+        carbons_out = np.zeros(total_requests)
+        inference_times = np.zeros(total_requests)
+        region_selections = np.zeros(total_requests, dtype=int)
+        
+        workload_stats = {wid: {'count': 0, 'latencies': [], 'slo_violations': 0} for wid in get_workload_list()}
+        total_slo_violations = 0
+        region_counts = np.zeros(len(REGIONS), dtype=int)
+        
+        for i in range(total_requests):
+            h = req_hours[i]
+            ul = req_users[i]
+            wid = req_workloads[i]
             
-            user_loc = USER_LOCATIONS[u_idx]
-            workload_name = WORKLOAD_NAMES[w_idx]
-            workload_cfg = WORKLOADS[workload_name]
+            lats = lat_lookup[ul]
+            cis = ci_arr[h]
             
-            # Retrieve latency options for this user location
-            net_lats = LATENCY_MATRIX[user_loc]
+            inference_ms = sample_inference_time(wid, rng=rng)
+            inference_times[i] = inference_ms
+            slo_threshold = get_slo_threshold(wid)
             
-            # Compute policy choice
-            chosen_region_idx = policy_fn(
-                latencies=net_lats,
-                carbons=current_carbons,
-                slos=workload_cfg['slo'],
-                mean_inference=workload_cfg['mean_lat']
-            )
+            if ptype == 'latency_first':
+                idx = latency_first(lats, cis)
+            elif ptype == 'carbon_first':
+                idx = carbon_first(lats, cis)
+            elif ptype == 'hybrid':
+                idx = hybrid_policy(lats, cis, alpha)
+            elif ptype == 'constrained':
+                idx = constrained_hybrid(lats, cis, slo_threshold, inference_ms)
             
-            chosen_region = REGION_NAMES[chosen_region_idx]
-            region_counts[chosen_region] += 1
+            region_selections[i] = idx
             
-            # Compute request timing
-            inf_time = np.random.normal(workload_cfg['mean_lat'], workload_cfg['std_lat'])
-            inf_time = max(0.0, inf_time)
+            net_lat = lats[idx]
+            jitter = max(0, rng.normal(NETWORK_JITTER_MEAN, NETWORK_JITTER_STD))
+            total_lat = max(1.0, net_lat + inference_ms + jitter)
             
-            total_latency = net_lats[chosen_region_idx] + inf_time + JITTER
-            latencies_log.append(total_latency)
-            wl_stats[workload_name]['latencies'].append(total_latency)
-            wl_stats[workload_name]['count'] += 1
+            latencies[i] = total_lat
+            carbons_out[i] = cis[idx]
+            region_counts[idx] += 1
             
-            if total_latency > workload_cfg['slo']:
-                slo_violations += 1
-                wl_stats[workload_name]['slo_violations'] += 1
+            if total_lat > slo_threshold:
+                total_slo_violations += 1
+                workload_stats[wid]['slo_violations'] += 1
                 
-            total_carbon += current_carbons[chosen_region_idx]
+            workload_stats[wid]['count'] += 1
+            workload_stats[wid]['latencies'].append(total_lat)
             
-    # Compile global performance metrics
-    metrics = {
-        'Policy': policy_name,
-        'Avg_Latency_ms': np.mean(latencies_log),
-        'P95_Latency_ms': np.percentile(latencies_log, 95),
-        'SLO_Violation_Rate_%': (slo_violations / total_reqs) * 100,
-        'Avg_Carbon_gCO2': total_carbon / total_reqs,
-    }
-    
-    # Track regional distribution
-    for r in REGION_NAMES:
-        metrics[f'Region_{r}_%'] = (region_counts[r] / total_reqs) * 100
-        
-    # Compile per-workload performance metrics
-    workload_metrics = []
-    for w_name in WORKLOAD_NAMES:
-        count = wl_stats[w_name]['count']
-        lats = wl_stats[w_name]['latencies']
-        viols = wl_stats[w_name]['slo_violations']
-        workload_metrics.append({
-            'Policy': policy_name,
-            'Workload': w_name,
-            'SLO_Target_ms': WORKLOADS[w_name]['slo'],
-            'Avg_Latency_ms': np.mean(lats) if count > 0 else 0,
-            'P95_Latency_ms': np.percentile(lats, 95) if count > 0 else 0,
-            'SLO_Violation_Rate_%': (viols / count * 100) if count > 0 else 0
+        results[label] = {
+            'avg_latency': round(np.mean(latencies), 1),
+            'p95_latency': round(np.percentile(latencies, 95), 1),
+            'slo_violation_pct': round(100 * total_slo_violations / total_requests, 2),
+            'avg_carbon': round(np.mean(carbons_out), 1),
+            'avg_inference_time': round(np.mean(inference_times), 1),
+            'region_dist': {REGIONS[j]: int(region_counts[j]) for j in range(len(REGIONS))},
+        }
+
+        detailed_results[label] = {}
+        for wid, stats in workload_stats.items():
+            if stats['count'] > 0:
+                detailed_results[label][wid] = {
+                    'count': stats['count'],
+                    'avg_latency': np.mean(stats['latencies']),
+                    'p95_latency': np.percentile(stats['latencies'], 95),
+                    'slo_violation_pct': 100 * stats['slo_violations'] / stats['count'],
+                    'slo_threshold': get_slo_threshold(wid),
+                }
+
+    baseline_carbon = results['Latency-First']['avg_carbon']
+    for label, res in results.items():
+        if label == 'Latency-First':
+            res['carbon_reduction'] = 0.0
+        else:
+            red = round(100 * (1 - res['avg_carbon'] / baseline_carbon), 1)
+            res['carbon_reduction'] = red
+            
+    rows = []
+    for label, res in results.items():
+        rows.append({
+            'Policy': label,
+            'Avg Latency (ms)': res['avg_latency'],
+            'P95 Latency (ms)': res['p95_latency'],
+            'SLO Violation Rate (%)': res['slo_violation_pct'],
+            'Avg Carbon (gCO2eq/kWh)': res['avg_carbon'],
+            'Carbon Reduction': res['carbon_reduction'],
         })
         
-    return metrics, workload_metrics
-
-def main():
-    parser = argparse.ArgumentParser(description="Carbon-aware Multi-region AI Inference Simulator")
-    parser.add_argument('--sim-hours', type=int, default=SIM_HOURS, 
-                        help="Duration of the simulation in hours.")
-    parser.add_argument('--reqs-per-hour', type=int, default=REQS_PER_HOUR, 
-                        help="Number of inference requests per hour.")
-    parser.add_argument('--seed', type=int, default=SEED, 
-                        help="Random seed for reproducibility.")
-    args = parser.parse_args()
+    results_df = pd.DataFrame(rows)
+    results_df.to_csv(f'{output_dir}/tables/simulation_results.csv', index=False)
+    carbon_df.to_csv(f'{output_dir}/data/carbon_intensity_traces.csv', index_label='hour')
+    LATENCY_MATRIX.to_csv(f'{output_dir}/data/latency_matrix.csv')
     
-    np.random.seed(args.seed)
-    
-    # 1. Setup environment and trace data
-    carbon_traces = generate_carbon_traces(seed=args.seed, sim_hours=args.sim_hours)
-    export_latency_matrix()
-    
-    # 2. Pre-generate all incoming traffic (to ensure fair policy comparison)
-    total_reqs = args.sim_hours * args.reqs_per_hour
-    user_loc_indices = np.random.choice(len(USER_LOCATIONS), size=total_reqs, p=USER_PROBS)
-    workload_indices = np.random.choice(len(WORKLOAD_NAMES), size=total_reqs, p=WORKLOAD_PROBS)
-    
-    logger.info(f"Generated {total_reqs:,} requests over {args.sim_hours} hours.")
-    
-    # 3. Execution loop across policies
-    global_results = []
-    all_workload_results = []
-    baseline_carbon = None
-    
-    for name, fn in POLICIES.items():
-        metrics, workload_metrics = run_policy_simulation(
-            policy_name=name, 
-            policy_fn=fn, 
-            carbon_traces=carbon_traces, 
-            user_loc_indices=user_loc_indices, 
-            workload_indices=workload_indices,
-            sim_hours=args.sim_hours,
-            reqs_per_hour=args.reqs_per_hour
-        )
-        
-        if name == 'Latency-First':
-            baseline_carbon = metrics['Avg_Carbon_gCO2']
-            metrics['Carbon_Reduction_%'] = 0.0
-        else:
-            reduction = ((baseline_carbon - metrics['Avg_Carbon_gCO2']) / baseline_carbon) * 100
-            metrics['Carbon_Reduction_%'] = reduction
+    workload_rows = []
+    for policy, wl_data in detailed_results.items():
+        for wid, stats in wl_data.items():
+            workload_rows.append({
+                'Policy': policy,
+                'Workload': WORKLOADS[wid]['name'],
+                'Workload_ID': wid,
+                'Request_Count': stats['count'],
+                'Avg_Latency_ms': round(stats['avg_latency'], 1),
+                'P95_Latency_ms': round(stats['p95_latency'], 1),
+                'SLO_Threshold_ms': stats['slo_threshold'],
+                'SLO_Violation_Rate_%': round(stats['slo_violation_pct'], 2),
+            })
             
-        global_results.append(metrics)
-        all_workload_results.extend(workload_metrics)
-        
-    # 4. Save and report outputs
-    df_global = pd.DataFrame(global_results)
-    df_workload = pd.DataFrame(all_workload_results)
-    
-    out_dir = Path('../outputs/tables')
-    out_dir.mkdir(parents=True, exist_ok=True)
-    df_global.to_csv(out_dir / 'simulation_results.csv', index=False)
-    df_workload.to_csv(out_dir / 'workload_results.csv', index=False)
-    
-    logger.info("Simulation complete. Global Results:\n")
-    print(df_global[['Policy', 'Avg_Latency_ms', 'P95_Latency_ms', 
-                      'SLO_Violation_Rate_%', 'Avg_Carbon_gCO2', 'Carbon_Reduction_%']].to_string(index=False))
+    workload_df = pd.DataFrame(workload_rows)
+    workload_df.to_csv(f'{output_dir}/tables/per_workload_results.csv', index=False)
+    return results_df, carbon_df, detailed_results
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--sim-hours', type=int, default=SIMULATION_HOURS)
+    parser.add_argument('--reqs-per-hour', type=int, default=REQUESTS_PER_HOUR)
+    parser.add_argument('--seed', type=int, default=RANDOM_SEED)
+    args = parser.parse_args()
+    
+    run_simulation(hours=args.sim_hours, rph=args.reqs_per_hour, seed=args.seed)
