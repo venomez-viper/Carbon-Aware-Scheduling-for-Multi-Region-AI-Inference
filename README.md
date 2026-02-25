@@ -78,6 +78,43 @@ This project implements a simulation framework for routing AI inference requests
 
 ---
 
+## ✨ Premium Research Figures
+
+### Carbon Intensity Heatmap (Region × Hour-of-Day)
+![Carbon Heatmap](outputs/graphs/premium/carbon_heatmap.png)
+
+*Shows exactly which regions are cleanest at each hour — the core driver behind why carbon-aware routing works.*
+
+---
+
+### Multi-Metric Policy Radar Chart
+![Radar Policy Comparison](outputs/graphs/premium/radar_policy_comparison.png)
+
+*Spider chart comparing Latency Score, P95, SLO Compliance, Carbon Reduction, and Carbon Efficiency simultaneously. Constrained Hybrid and Hybrid α=0.7 dominate the viable region.*
+
+---
+
+### Latency CDF by Policy
+![Latency CDF](outputs/graphs/premium/latency_cdf.png)
+
+*Standard academic CDF showing latency distributions. Curves to the left = faster. SLO thresholds shown as vertical lines. Latency-First and Constrained Hybrid stay far left of the 95th-percentile line.*
+
+---
+
+### 3-Way Trade-off Bubble Chart
+![Bubble Tradeoff](outputs/graphs/premium/bubble_tradeoff.png)
+
+*X=Carbon Reduction, Y=SLO Violations, bubble size=Avg Latency — three dimensions in one figure. Constrained Hybrid sits in the bottom-right sweet spot.*
+
+---
+
+### Editorial Dual Bar: Carbon Savings vs SLO Violations
+![Carbon Savings Bar](outputs/graphs/premium/carbon_savings_bar.png)
+
+*Side-by-side horizontal bars make the trade-off immediately readable for any audience.*
+
+---
+
 ## 🚀 Quick Start
 
 1. Clone the repository:
