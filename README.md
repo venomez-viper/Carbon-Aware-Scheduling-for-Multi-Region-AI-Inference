@@ -7,7 +7,7 @@ This project implements a simulation framework for routing AI inference requests
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference.git
+git clone https://github.com/venomez-viper/Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference.git
 cd Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference
 ```
 
