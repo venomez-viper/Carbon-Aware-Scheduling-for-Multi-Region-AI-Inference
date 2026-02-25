@@ -136,14 +136,18 @@ def run_simulation(output_dir='../outputs', hours=SIMULATION_HOURS, rph=REQUESTS
             
     rows = []
     for label, res in results.items():
-        rows.append({
+        row = {
             'Policy': label,
             'Avg Latency (ms)': res['avg_latency'],
             'P95 Latency (ms)': res['p95_latency'],
             'SLO Violation Rate (%)': res['slo_violation_pct'],
             'Avg Carbon (gCO2eq/kWh)': res['avg_carbon'],
             'Carbon Reduction': res['carbon_reduction'],
-        })
+        }
+        # Add per-region request counts for routing distribution chart
+        for region, count in res['region_dist'].items():
+            row[region] = count
+        rows.append(row)
         
     results_df = pd.DataFrame(rows)
     results_df.to_csv(f'{output_dir}/tables/simulation_results.csv', index=False)
