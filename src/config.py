@@ -75,6 +75,14 @@ CARBON_RANDOM_NOISE_RANGE = 0.1
 
 HYBRID_ALPHA_VALUES = [0.2, 0.3, 0.5, 0.7]
 
+# Global normalization bounds for hybrid policy scoring
+# Used to ensure alpha is a stable, consistent weight across all requests
+LATENCY_GLOBAL_MIN = 5      # Minimum RTT in latency matrix (intra-region)
+LATENCY_GLOBAL_MAX = 230    # Maximum RTT in latency matrix (US-East to Singapore)
+CARBON_GLOBAL_MIN = 5       # Floor value set in generate_carbon_traces()
+CARBON_GLOBAL_MAX = 450     # Approx max: Singapore(367) x 1.2 diurnal amplitude
+
+
 def get_workload_list():
     return list(WORKLOADS.keys())
 
@@ -91,4 +99,17 @@ def get_slo_threshold(workload_id):
     return WORKLOADS[workload_id]["slo_threshold_ms"]
 
 def print_config_summary():
-    pass
+    print("=" * 60)
+    print("SIMULATION CONFIGURATION SUMMARY")
+    print("=" * 60)
+    print(f"Duration : {SIMULATION_HOURS} hours ({SIMULATION_HOURS//24} days)")
+    print(f"Requests : {REQUESTS_PER_HOUR} req/hr → {SIMULATION_HOURS * REQUESTS_PER_HOUR} total")
+    print(f"Regions  : {REGIONS}")
+    print(f"Alpha    : {HYBRID_ALPHA_VALUES}")
+    print(f"Seed     : {RANDOM_SEED}")
+    print("-" * 60)
+    for wid, w in WORKLOADS.items():
+        print(f"  {wid:12s} | Inference N({w['inference_mean_ms']},{w['inference_std_ms']})ms "
+              f"| SLO {w['slo_threshold_ms']}ms | {int(w['probability']*100)}% traffic")
+    print("=" * 60)
+

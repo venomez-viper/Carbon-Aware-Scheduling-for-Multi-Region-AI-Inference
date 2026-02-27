@@ -3,9 +3,13 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import matplotlib
+matplotlib.rcParams['font.family'] = 'DejaVu Sans'      # ← BEFORE pyplot and seaborn
+matplotlib.rcParams['axes.unicode_minus'] = False
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
+
 
 # Configure logging
 logging.basicConfig(
@@ -45,13 +49,14 @@ def plot_regional_carbon_latency(output_dir: Path) -> None:
     """
     logger.info("Generating Figure 1: Regional carbon & latency comparison...")
 
-    regions = ['US-East', 'US-West', 'EU-West', 'EU-North', 'Singapore']
+    # CORRECT — reads directly from config so it always matches
+    from config import LATENCY_MATRIX, BASE_CARBON_INTENSITY, REGIONS
 
-    # Average carbon intensity (gCO2eq/kWh) from config
-    carbon = [323, 79, 276, 25, 367]
+    regions = REGIONS
+    carbon = [BASE_CARBON_INTENSITY[r] for r in regions]
+    latency_from_us_east = [int(LATENCY_MATRIX.loc['US-East', r]) for r in regions]
+# Produces: [5, 65, 85, 95, 230] — correct values
 
-    # Network latency from US-East to each region (ms) from latency matrix
-    latency_from_us_east = [5, 80, 100, 170, 230]
 
     x = np.arange(len(regions))
     width = 0.55
@@ -59,7 +64,7 @@ def plot_regional_carbon_latency(output_dir: Path) -> None:
     fig, ax1 = plt.subplots(figsize=(10, 6))
 
     bars = ax1.bar(x, carbon, width, color=[REGION_COLORS[r] for r in regions],
-                   edgecolor='black', linewidth=0.8, alpha=0.85, zorder=3)
+                edgecolor='black', linewidth=0.8, alpha=0.85, zorder=3)
 
     ax1.set_xlabel('Cloud Region', fontsize=12, labelpad=8)
     ax1.set_ylabel('Avg Carbon Intensity (gCO₂eq/kWh)', fontsize=12)
@@ -71,27 +76,27 @@ def plot_regional_carbon_latency(output_dir: Path) -> None:
     # Annotate bar values
     for bar, val in zip(bars, carbon):
         ax1.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 8,
-                 f'{val}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+                f'{val}', ha='center', va='bottom', fontsize=10, fontweight='bold')
 
     # Second y-axis: latency
     ax2 = ax1.twinx()
     ax2.plot(x, latency_from_us_east, color='#2c2c2c', marker='D',
-             linewidth=2, markersize=8, zorder=4, label='Latency from US-East')
+            linewidth=2, markersize=8, zorder=4, label='Latency from US-East')
     ax2.set_ylabel('Network Latency from US-East (ms)', fontsize=12)
     ax2.set_ylim(0, 300)
 
     for xi, lat in zip(x, latency_from_us_east):
         ax2.annotate(f'{lat} ms', (xi, lat), textcoords='offset points',
-                     xytext=(0, 10), ha='center', fontsize=9, color='#2c2c2c')
+                    xytext=(0, 10), ha='center', fontsize=9, color='#2c2c2c')
 
     plt.title('Figure 1: Carbon Intensity and Network Latency by Cloud Region',
-              fontsize=13, pad=14, fontweight='bold')
+            fontsize=13, pad=14, fontweight='bold')
 
     # Combined legend
     bar_patches = [mpatches.Patch(color=REGION_COLORS[r], label=r) for r in regions]
     lat_line = plt.Line2D([0], [0], color='#2c2c2c', marker='D', linewidth=2, label='Latency (ms)')
     ax1.legend(handles=bar_patches + [lat_line], loc='upper left',
-               fontsize=9, framealpha=0.85, ncol=2)
+            fontsize=9, framealpha=0.85, ncol=2)
 
     out_path = output_dir / 'regional_carbon_latency.png'
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -123,8 +128,8 @@ def plot_tradeoff_curve(input_csv: Path, output_dir: Path) -> None:
         marker = '◆' if 'Constrained' in policy else 'o'
         ms = 160 if 'Constrained' in policy else 120
         ax.scatter(row['Carbon Reduction'], row['SLO Violation Rate (%)'],
-                   s=ms, c=color, edgecolors='black', linewidths=0.8,
-                   zorder=5, marker='D' if 'Constrained' in policy else 'o')
+                s=ms, c=color, edgecolors='black', linewidths=0.8,
+                zorder=5, marker='D' if 'Constrained' in policy else 'o')
         ax.annotate(
             policy,
             (row['Carbon Reduction'], row['SLO Violation Rate (%)']),
@@ -135,7 +140,7 @@ def plot_tradeoff_curve(input_csv: Path, output_dir: Path) -> None:
     ax.set_xlabel('Carbon Reduction vs. Latency-First Baseline (%)', fontsize=12)
     ax.set_ylabel('SLO Violation Rate (%)', fontsize=12)
     ax.set_title('Figure 2: Carbon Reduction vs. SLO Violations — Policy Trade-off Curve',
-                 fontsize=12, fontweight='bold', pad=14)
+                fontsize=12, fontweight='bold', pad=14)
 
     # Legend
     legend_handles = [
@@ -143,7 +148,7 @@ def plot_tradeoff_curve(input_csv: Path, output_dir: Path) -> None:
         for p in df['Policy']
     ]
     ax.legend(handles=legend_handles, fontsize=8.5, loc='upper left',
-              framealpha=0.85, title='Scheduling Policy')
+            framealpha=0.85, title='Scheduling Policy')
 
     out_path = output_dir / 'tradeoff_curve.png'
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -170,7 +175,7 @@ def plot_routing_distribution(input_csv: Path, output_dir: Path) -> None:
 
     if not region_cols:
         logger.warning("No region distribution columns found in simulation_results.csv. "
-                       "Skipping routing distribution plot.")
+                    "Skipping routing distribution plot.")
         return
 
     # Compute proportions
@@ -191,7 +196,7 @@ def plot_routing_distribution(input_csv: Path, output_dir: Path) -> None:
         if region in df_sel.columns:
             vals = df_sel[region].values
             ax.bar(x, vals, bottom=bottoms, color=REGION_COLORS[region],
-                   edgecolor='white', linewidth=0.6, label=region, alpha=0.9)
+                edgecolor='white', linewidth=0.6, label=region, alpha=0.9)
             # Annotate if segment > 8%
             for xi, v, b in zip(x, vals, bottoms):
                 if v > 8:
@@ -204,9 +209,9 @@ def plot_routing_distribution(input_csv: Path, output_dir: Path) -> None:
     ax.set_ylabel('Percentage of Requests Routed (%)', fontsize=12)
     ax.set_ylim(0, 110)
     ax.set_title('Figure 3: Request Routing Distribution Across Regions by Policy',
-                 fontsize=12, fontweight='bold', pad=14)
+                fontsize=12, fontweight='bold', pad=14)
     ax.legend(title='Region', loc='upper right', bbox_to_anchor=(1.18, 1),
-              fontsize=9, framealpha=0.85)
+            fontsize=9, framealpha=0.85)
 
     out_path = output_dir / 'routing_distribution.png'
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -270,7 +275,7 @@ def plot_carbon_traces(input_csv: Path, output_dir: Path) -> None:
                 alpha=0.9, color=color)
 
     ax.set_title('Figure 5: Hourly Carbon Intensity by Cloud Region (7-Day Simulation)',
-                 fontsize=12, fontweight='bold', pad=14)
+                fontsize=12, fontweight='bold', pad=14)
     ax.set_xlabel('Hour of Simulation', fontsize=12)
     ax.set_ylabel('Carbon Intensity (gCO₂eq/kWh)', fontsize=12)
     ax.legend(title='Region', loc='upper right', fontsize=9)
@@ -306,10 +311,10 @@ def render_prior_work_comparison(results_csv: Path, output_dir: Path) -> None:
 
     data = {
         'System': ['CASPER (2023)', 'CASA (2024)', 'Microsoft (2023)',
-                   'Google CICS (2021)', 'This Work (2026)'],
+                'Google CICS (2021)', 'This Work (2026)'],
         'Workload': ['Web services\n(Wikimedia)', 'Serverless\nFaaS',
-                     'General\ncompute', 'Datacenter\nworkloads',
-                     'AI Inference\n(BERT, ResNet)'],
+                    'General\ncompute', 'Datacenter\nworkloads',
+                    'AI Inference\n(BERT, ResNet)'],
         'Regions': ['6 AWS\nregions', 'Multi-region\nFaaS', 'Azure\nglobal',
                     'Google\nfleet', '5 regions\n(US/EU/Asia)'],
         'Key Finding': [
@@ -364,7 +369,7 @@ def render_prior_work_comparison(results_csv: Path, output_dir: Path) -> None:
                 table[i, j].set_facecolor(shade)
 
     ax.set_title('Comparison with Related Carbon-Aware Scheduling Systems',
-                 fontsize=13, fontweight='bold', pad=16, x=0.5, y=1.02)
+                fontsize=13, fontweight='bold', pad=16, x=0.5, y=1.02)
 
     out_path = output_dir / 'prior_work_comparison.png'
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -376,7 +381,7 @@ def render_prior_work_comparison(results_csv: Path, output_dir: Path) -> None:
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
 def main():
-    base_dir = Path('../')
+    base_dir = Path(__file__).parent.parent
     output_dir = base_dir / 'outputs'
 
     trace_path    = output_dir / 'data'   / 'carbon_intensity_traces.csv'

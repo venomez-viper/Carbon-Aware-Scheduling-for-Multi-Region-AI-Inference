@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import os
 import argparse
+from pathlib import Path
 from config import *
 from policies import latency_first, carbon_first, hybrid_policy, constrained_hybrid
 
@@ -32,7 +33,9 @@ def generate_requests(hours, rph, seed=RANDOM_SEED):
     )
     return req_hours, req_users, req_workloads
 
-def run_simulation(output_dir='../outputs', hours=SIMULATION_HOURS, rph=REQUESTS_PER_HOUR, seed=RANDOM_SEED):
+def run_simulation(output_dir=None, hours=SIMULATION_HOURS, rph=REQUESTS_PER_HOUR, seed=RANDOM_SEED):
+    if output_dir is None:
+        output_dir = str(Path(__file__).parent.parent / 'outputs')
     os.makedirs(f'{output_dir}/tables', exist_ok=True)
     os.makedirs(f'{output_dir}/data', exist_ok=True)
     
@@ -88,6 +91,9 @@ def run_simulation(output_dir='../outputs', hours=SIMULATION_HOURS, rph=REQUESTS
                 idx = hybrid_policy(lats, cis, alpha)
             elif ptype == 'constrained':
                 idx = constrained_hybrid(lats, cis, slo_threshold, inference_ms)
+            else:
+                raise ValueError(f"Unknown policy type: {ptype}")
+
             
             region_selections[i] = idx
             
