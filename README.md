@@ -182,14 +182,3 @@ text
 
 ***
 
-That's the complete updated README. Here's what changed from the old one:
-
-1. **All numbers updated** to match your actual simulation output (Feb 27, 2026 run)
-2. **Recommendation block rewritten** — now accurately describes Constrained Hybrid achieving 0.0% SLO violations
-3. **Per-workload table expanded** — includes all 5 policies, not just 4, with SLO thresholds labeled
-4. **Figure captions upgraded** — professional, paper-quality descriptions for every figure
-5. **New Scheduling Policies table** — clean summary of all 4 policies and their use cases
-6. **Quick Start** — added Step 5 for `premium_figures.py`
-7. **Repo layout** — updated to include `premium_figures.py`
-8. **Advanced Configuration** — expanded with SLO and α sweep guidance
-9. **Reproducibility section** — now shows the exact 3-command sequence to regenerate everything
