@@ -3,7 +3,7 @@
 ## Overview
 This project implements a simulation framework for routing AI inference requests across multiple cloud regions. It evaluates the trade-offs between network latency, SLO violations, and carbon intensity by testing various scheduling policies (Latency-First, Carbon-First, and Hybrid). The framework supports multiple AI workloads (BERT-base, BERT-large, ResNet-50), each with specific SLOs and performance profiles.
 
-**Team:** Akash Anipakalu Giridhar · Brandon Youngkrantz · Alexandre Corret · Yogith Ramanan
+**Team:** Akash Anipakalu Giridhar · Yogith Ramanan · Brandon Youngkrantz · Alexandre Corret
 
 ---
 
