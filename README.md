@@ -111,7 +111,7 @@ This project implements a discrete-event simulation framework for evaluating car
 ---
 
 ## 🚀 Quick Start
-
+```bash
 ### 1. Clone the repository:
 git clone https://github.com/venomez-viper/Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference.git
 cd Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference
