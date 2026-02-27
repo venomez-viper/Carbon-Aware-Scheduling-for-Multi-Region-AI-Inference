@@ -77,11 +77,16 @@ HYBRID_ALPHA_VALUES = [0.2, 0.3, 0.5, 0.7]
 
 # Global normalization bounds for hybrid policy scoring
 # Used to ensure alpha is a stable, consistent weight across all requests
-LATENCY_GLOBAL_MIN = 5      # Minimum RTT in latency matrix (intra-region)
-LATENCY_GLOBAL_MAX = 230    # Maximum RTT in latency matrix (US-East to Singapore)
-CARBON_GLOBAL_MIN = 5       # Floor value set in generate_carbon_traces()
-CARBON_GLOBAL_MAX = 450     # Approx max: Singapore(367) x 1.2 diurnal amplitude
-
+# LATENCY_GLOBAL_MIN = 5      # Minimum RTT in latency matrix (intra-region)
+# LATENCY_GLOBAL_MAX = 230    # Maximum RTT in latency matrix (US-East to Singapore)
+# CARBON_GLOBAL_MIN = 5       # Floor value set in generate_carbon_traces()
+# CARBON_GLOBAL_MAX = 450     # Approx max: Singapore(367) x 1.2 diurnal amplitude
+LATENCY_GLOBAL_MIN = 5
+LATENCY_GLOBAL_MAX = 230
+CARBON_GLOBAL_MIN = 5
+CARBON_GLOBAL_MAX = 450
+NETWORK_JITTER_MEAN = 0
+NETWORK_JITTER_STD = 3
 
 def get_workload_list():
     return list(WORKLOADS.keys())
