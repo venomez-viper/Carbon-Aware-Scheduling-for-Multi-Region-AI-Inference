@@ -143,11 +143,11 @@ python metrics.py
 python premium_figures.py
 ```
 ---
-All outputs are written to:
+## All outputs are written to:
 
 1. outputs/tables/ — simulation_results.csv, per_workload_results.csv
-2.outputs/graphs/ — Figures 1–5 + prior work comparison table (PNG)
-3.outputs/graphs/premium/ — 5 additional research-grade figures
+2. outputs/graphs/ — Figures 1–5 + prior work comparison table (PNG)
+3. outputs/graphs/premium/ — 5 additional research-grade figures
 
 ---
 
@@ -168,7 +168,7 @@ Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference/
 └── requirements.txt
 ```
 ---
-⚙️ Scheduling Policies
+## ⚙️ Scheduling Policies
 Policy	Logic	Best For
 Latency-First	Routes every request to the minimum-RTT region	Baseline; latency-critical workloads
 Carbon-First	Routes every request to the minimum-carbon region	Deferrable or batch workloads
@@ -176,13 +176,13 @@ Hybrid (α)	Weighted score: α·norm_latency + (1−α)·norm_carbon	Tunable tra
 Constrained Hybrid	SLO-filter first, then pick lowest carbon among eligible regions	Production inference; hard SLO guarantees
 Global min-max normalization ensures α is a stable, consistent weight across all requests regardless of instantaneous carbon or latency values.
 
-🔧 Advanced Configuration
+## 🔧 Advanced Configuration
 Add custom policies: Implement a routing function in src/policies.py and register it in the policy_configs list in src/simulation.py.
 Add new workloads or regions: Update WORKLOADS or REGIONS in src/config.py — the simulation adapts automatically.
 Adjust SLO thresholds: Modify slo_threshold_ms per workload in config.py to model stricter or more relaxed SLO regimes.
 Extend the α sweep: Add values to HYBRID_ALPHA_VALUES in config.py for a finer-grained trade-off curve.
 
-🔁 Reproducibility
+## 🔁 Reproducibility
 All code, configuration, random seeds, and output data are committed to this repository. Running src/simulation.py followed by src/metrics.py and src/premium_figures.py with the default seed (42) reproduces every figure and table exactly as reported.
 
 bash
