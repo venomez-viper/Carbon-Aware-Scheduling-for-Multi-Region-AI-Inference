@@ -1,5 +1,3 @@
-
-You said:
 # Carbon-Aware Scheduling for Multi-Region AI Inference
 
 ## Overview
