@@ -197,5 +197,5 @@ cd src
 python simulation.py   # regenerates outputs/tables/*.csv
 python metrics.py      # regenerates outputs/graphs/*.png
 python premium_figures.py   # regenerates outputs/graphs/premium/*.png
-
+```
 ***
