@@ -145,9 +145,9 @@ python premium_figures.py
 ---
 ## All outputs are written to:
 
-1. outputs/tables/ — simulation_results.csv, per_workload_results.csv
-2. outputs/graphs/ — Figures 1–5 + prior work comparison table (PNG)
-3. outputs/graphs/premium/ — 5 additional research-grade figures
+- outputs/tables/ — simulation_results.csv, per_workload_results.csv
+- outputs/graphs/ — Figures 1–5 + prior work comparison table (PNG)
+- outputs/graphs/premium/ — 5 additional research-grade figures
 
 ---
 
@@ -168,6 +168,7 @@ Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference/
 └── requirements.txt
 ```
 ---
+
 ## ⚙️ Scheduling Policies
 
 | Policy | Logic | Best For |
@@ -178,6 +179,7 @@ Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference/
 | Constrained Hybrid | SLO-filter first, then pick lowest carbon among eligible regions | Production inference; hard SLO guarantees |
 
 Global min-max normalization ensures α is a stable, consistent weight across all requests regardless of instantaneous carbon or latency values.
+
 ---
 
 ## 🔧 Advanced Configuration
@@ -186,6 +188,7 @@ Global min-max normalization ensures α is a stable, consistent weight across al
 - Add new workloads or regions: Update `WORKLOADS` or `REGIONS` in `src/config.py` — the simulation adapts automatically.
 - Adjust SLO thresholds: Modify `slo_threshold_ms` per workload in `config.py` to model stricter or more relaxed SLO regimes.
 - Extend the α sweep: Add values to `HYBRID_ALPHA_VALUES` in `config.py` for a finer-grained trade-off curve.
+- 
 ---
 
 ## 🔁 Reproducibility
