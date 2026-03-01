@@ -94,25 +94,24 @@ This project implements a discrete-event simulation framework for evaluating car
 
 ## 🚀 Quick Start
 
-```bash
 ### 1. Clone the repository:
 git clone https://github.com/venomez-viper/Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference.git
 cd Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference
 
-2. Install dependencies:
+###2. Install dependencies:
 pip install -r requirements.txt
 
-3. Run the simulation:
+###3. Run the simulation:
 cd src
 python simulation.py
 
-Optional parameter overrides:
+###Optional parameter overrides:
 python simulation.py --sim-hours 336 --reqs-per-hour 500 --seed 42
 
-4. Generate all standard figures:
+###4. Generate all standard figures:
 python metrics.py
 
-5. Generate premium research figures:
+###5. Generate premium research figures:
 python premium_figures.py
 
 All outputs are written to:
