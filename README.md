@@ -142,12 +142,12 @@ python metrics.py
 ```bash
 python premium_figures.py
 ```
-
+---
 All outputs are written to:
 
-outputs/tables/ — simulation_results.csv, per_workload_results.csv
-outputs/graphs/ — Figures 1–5 + prior work comparison table (PNG)
-outputs/graphs/premium/ — 5 additional research-grade figures
+1. outputs/tables/ — simulation_results.csv, per_workload_results.csv
+2.outputs/graphs/ — Figures 1–5 + prior work comparison table (PNG)
+3.outputs/graphs/premium/ — 5 additional research-grade figures
 
 ---
 
@@ -167,7 +167,7 @@ Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference/
 ├── README.md
 └── requirements.txt
 ```
-
+---
 ⚙️ Scheduling Policies
 Policy	Logic	Best For
 Latency-First	Routes every request to the minimum-RTT region	Baseline; latency-critical workloads
