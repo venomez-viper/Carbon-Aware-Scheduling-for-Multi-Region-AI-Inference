@@ -149,6 +149,8 @@ outputs/tables/ — simulation_results.csv, per_workload_results.csv
 outputs/graphs/ — Figures 1–5 + prior work comparison table (PNG)
 outputs/graphs/premium/ — 5 additional research-grade figures
 
+---
+
 🗂️ Repository Layout:
 ```bash
 Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference/
