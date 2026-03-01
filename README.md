@@ -178,6 +178,7 @@ Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference/
 | Constrained Hybrid | SLO-filter first, then pick lowest carbon among eligible regions | Production inference; hard SLO guarantees |
 
 Global min-max normalization ensures α is a stable, consistent weight across all requests regardless of instantaneous carbon or latency values.
+---
 
 ## 🔧 Advanced Configuration
 
@@ -185,6 +186,7 @@ Global min-max normalization ensures α is a stable, consistent weight across al
 - Add new workloads or regions: Update `WORKLOADS` or `REGIONS` in `src/config.py` — the simulation adapts automatically.
 - Adjust SLO thresholds: Modify `slo_threshold_ms` per workload in `config.py` to model stricter or more relaxed SLO regimes.
 - Extend the α sweep: Add values to `HYBRID_ALPHA_VALUES` in `config.py` for a finer-grained trade-off curve.
+---
 
 ## 🔁 Reproducibility
 
@@ -195,3 +197,5 @@ cd src
 python simulation.py   # regenerates outputs/tables/*.csv
 python metrics.py      # regenerates outputs/graphs/*.png
 python premium_figures.py   # regenerates outputs/graphs/premium/*.png
+
+***
