@@ -1,38 +1,3 @@
-# import numpy as np
-# from config import (
-#     LATENCY_GLOBAL_MIN, LATENCY_GLOBAL_MAX,
-#     CARBON_GLOBAL_MIN, CARBON_GLOBAL_MAX
-# )
-
-
-# def latency_first(lats, cis, **kwargs):
-#     """Policy 1: Route to lowest-latency region. Ignores carbon."""
-#     return np.argmin(lats)
-
-
-# def carbon_first(lats, cis, **kwargs):
-#     """Policy 2: Route to lowest carbon intensity region. Ignores latency."""
-#     return np.argmin(cis)
-
-# def hybrid_policy(lats, cis, alpha, **kwargs):
-#     norm_l = (lats - LATENCY_GLOBAL_MIN) / (LATENCY_GLOBAL_MAX - LATENCY_GLOBAL_MIN)
-#     norm_c = (cis - CARBON_GLOBAL_MIN) / (CARBON_GLOBAL_MAX - CARBON_GLOBAL_MIN)
-#     norm_l = np.clip(norm_l, 0, 1)
-#     norm_c = np.clip(norm_c, 0, 1)
-#     scores = alpha * norm_l + (1 - alpha) * norm_c
-#     return np.argmin(scores)
-
-# def constrained_hybrid(lats, cis, slo_threshold, inference_ms, jitter_buffer=9, **kwargs):
-#     total_lats = lats + inference_ms + jitter_buffer
-#     eligible = total_lats <= slo_threshold
-#     if eligible.any():
-#         masked_ci = np.where(eligible, cis, 1e9)
-#         return np.argmin(masked_ci)
-#     else:
-#         return np.argmin(lats)
-
-
-
 import numpy as np
 from config import (
     LATENCY_GLOBAL_MIN, LATENCY_GLOBAL_MAX,
