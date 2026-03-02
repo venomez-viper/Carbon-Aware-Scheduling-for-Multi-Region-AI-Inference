@@ -20,3 +20,6 @@ Hybrid (α=0.7),ResNet-50 Image Embedding,resnet50,3285,28.4,77.4,80,2.68
 Constrained Hybrid,BERT-base Text Classification,bert_base,20156,52.5,88.7,100,0.0
 Constrained Hybrid,BERT-large Question Answering,bert_large,10159,94.2,138.5,150,0.01
 Constrained Hybrid,ResNet-50 Image Embedding,resnet50,3285,23.8,41.8,80,0.0
+Adaptive Hybrid,BERT-base Text Classification,bert_base,20156,38.0,111.0,100,5.97
+Adaptive Hybrid,BERT-large Question Answering,bert_large,10159,82.2,134.8,150,1.08
+Adaptive Hybrid,ResNet-50 Image Embedding,resnet50,3285,30.1,102.3,80,6.33

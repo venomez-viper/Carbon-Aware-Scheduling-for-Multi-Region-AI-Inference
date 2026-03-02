@@ -37,8 +37,8 @@ POLICY_COLORS = {
     'Hybrid (\u03b1=0.5)': '#4E79A7',
     'Hybrid (\u03b1=0.7)': '#F28E2B',
     'Constrained Hybrid':   '#17becf',
+    'Adaptive Hybrid':      '#2ca02c',
 }
-
 
 # ─── Figure 1: Regional Carbon Intensity & Latency ───────────────────────────
 def plot_regional_carbon_latency(output_dir: Path) -> None:
