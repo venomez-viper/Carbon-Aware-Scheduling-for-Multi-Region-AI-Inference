@@ -1,5 +1,19 @@
+# outputs/
+# data/
+# __pycache__/
+# *.pyc
+# .DS_Store
+
+# # Allow outputs for team visibility
+# !outputs/
+# !outputs/graphs/
+# !outputs/graphs/*.png
+# !outputs/tables/
+# !outputs/tables/*.csv
+
+
+
 outputs/
-data/
 __pycache__/
 *.pyc
 .DS_Store
@@ -8,5 +22,9 @@ __pycache__/
 !outputs/
 !outputs/graphs/
 !outputs/graphs/*.png
+!outputs/graphs/premium/
+!outputs/graphs/premium/*.png
 !outputs/tables/
 !outputs/tables/*.csv
+!outputs/data/
+!outputs/data/*.csv
