@@ -188,7 +188,7 @@ Global min-max normalization ensures α is a stable, consistent weight across al
 
 ---
 
-## Adaptive Hybrid — Controller Details
+## 🎛️ Adaptive Hybrid — Controller Details
 The Adaptive Hybrid controller maintains a separate α per workload and updates it after every request using a sliding window P95 estimate:
 
 - Headroom > 30% → shift carbon-aware (lower α) — lots of SLO budget available
