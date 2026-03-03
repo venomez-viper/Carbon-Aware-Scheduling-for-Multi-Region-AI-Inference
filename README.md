@@ -161,7 +161,7 @@ python premium_figures.py
 Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference/
 ├── src/
 │   ├── config.py            # Region definitions, workload profiles, simulation parameters
-│   ├── policies.py          # Scheduling policy implementations (4 policies)
+│   ├── policies.py          # Scheduling policy implementations (5 policies)
 │   ├── simulation.py        # Main simulation driver — generates traces, routes requests, exports CSVs
 │   ├── metrics.py           # Standard figure generation (Figures 1–5 + prior work table)
 │   └── premium_figures.py   # Premium research figures (heatmap, radar, CDF, bubble, dual-bar)
@@ -204,7 +204,7 @@ Controller constants: window=200 requests, α step=0.02, α bounds=[0.10, 0.90],
 - Add new workloads or regions: Update `WORKLOADS` or `REGIONS` in `src/config.py` — the simulation adapts automatically.
 - Adjust SLO thresholds: Modify `slo_threshold_ms` per workload in `config.py` to model stricter or more relaxed SLO regimes.
 - Extend the α sweep: Add values to `HYBRID_ALPHA_VALUES` in `config.py` for a finer-grained trade-off curve.
-- Tune the Adaptive controller: Modify`WINDOW_SIZE`, `ALPHA_STEP`, `HEADROOM_RELAX`, and `HEADROOM_TIGHT` constants in `simulation.py`.
+- Tune the Adaptive controller: Modify `WINDOW_SIZE`, `ALPHA_STEP`, `HEADROOM_RELAX`, and `HEADROOM_TIGHT` constants in `simulation.py`.
   
 ---
 
