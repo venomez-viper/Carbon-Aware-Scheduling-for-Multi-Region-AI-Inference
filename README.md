@@ -182,6 +182,7 @@ Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference/
 | Carbon-First | Routes every request to the minimum-carbon region | Deferrable or batch workloads |
 | Hybrid (α) | Weighted score: α·norm_latency + (1−α)·norm_carbon | Tunable trade-off; α=0.7 recommended |
 | Constrained Hybrid | SLO-filter first, then pick lowest carbon among eligible regions | Production inference; hard SLO guarantees |
+| Adaptive Hybrid | Closed-loop controller adjusts α per workload based on observed P95 vs SLO headroom | Self-tuning; no manual α selection needed |
 
 Global min-max normalization ensures α is a stable, consistent weight across all requests regardless of instantaneous carbon or latency values.
 
@@ -190,9 +191,9 @@ Global min-max normalization ensures α is a stable, consistent weight across al
 ## Adaptive Hybrid — Controller Details
 The Adaptive Hybrid controller maintains a separate α per workload and updates it after every request using a sliding window P95 estimate:
 
--- Headroom > 30% → shift carbon-aware (lower α) — lots of SLO budget available
--- Headroom < 10% → shift latency-safe (raise α) — SLO is tight
--- Comfortable zone → soft EMA pull toward neutral α=0.5
+- Headroom > 30% → shift carbon-aware (lower α) — lots of SLO budget available
+- Headroom < 10% → shift latency-safe (raise α) — SLO is tight
+- Comfortable zone → soft EMA pull toward neutral α=0.5
 Controller constants: window=200 requests, α step=0.02, α bounds=[0.10, 0.90], EMA factor=0.05, minimum observations=50.
 
 ---
