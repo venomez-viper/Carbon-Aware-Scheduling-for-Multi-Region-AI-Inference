@@ -2,15 +2,15 @@
 
 ## Overview
 
-This project implements a discrete-event simulation framework for evaluating carbon-aware request routing strategies across five cloud regions. It quantifies the trade-offs between network latency, SLO compliance, and grid carbon intensity under four scheduling policies — Latency-First, Carbon-First, Hybrid (α-sweep), and Constrained Hybrid — across three representative AI inference workloads (BERT-base, BERT-large, ResNet-50), each with distinct SLO thresholds and inference time profiles.
+This project implements a discrete-event simulation framework for evaluating carbon-aware request routing strategies across five cloud regions. It quantifies the trade-offs between network latency, SLO compliance, and grid carbon intensity under six scheduling policies — Latency-First, Carbon-First, Hybrid (α-sweep), Constrained Hybrid, and **Adaptive Hybrid** — across three representative AI inference workloads (BERT-base, BERT-large, ResNet-50), each with distinct SLO thresholds and inference time profiles.
 
-**Team:** Akash Anipakalu Giridhar · Brandon Youngkrantz · Alexandre Corret · Yogith Ramanan
+**Team:** Akash Anipakalu Giridhar · Yogith Ramanan · Brandon Youngkrantz · Alexandre Corret 
 
 ---
 
 ## 📊 Latest Simulation Results
 
-> Last updated: February 27, 2026 · 7-day simulation · 33,600 total requests · Seed 42
+> Last updated: March 2, 2026 · 7-day simulation · 33,600 total requests · Seed 42
 
 ### Policy Comparison (Aggregate)
 
@@ -23,8 +23,11 @@ This project implements a discrete-event simulation framework for evaluating car
 | Hybrid α=0.5 | 82.1 | 193.2 | 20.31% | 70.5 | 73.8% |
 | **Hybrid α=0.7** | **45.9** | **92.6** | **0.32%** | 182.5 | **32.1%** |
 | **Constrained Hybrid** ✅ | **62.3** | **129.3** | **0.00%** | 121.5 | **54.8%** |
+| **Adaptive Hybrid** 🔁 | **50.6** | **122.9** | **4.53%** | 189.0 | **29.7%** |
 
 > ✅ **Recommendation:** The **Constrained Hybrid** policy delivers the best production-viable outcome — **54.8% carbon reduction with 0.0% SLO violations**. It achieves this by filtering candidate regions to those satisfying the per-workload SLO budget (RTT + inference + 9 ms jitter buffer ≤ SLO threshold) before selecting the lowest-carbon option. Hybrid α=0.7 is a strong alternative, offering a slightly lower average latency (45.9 ms) at a marginal 0.32% SLO violation rate.
+>
+> 🔁 **Adaptive Hybrid** uses a closed-loop controller that dynamically adjusts α per workload based on observed P95 latency headroom against SLO thresholds, converging to a workload-specific balance without manual tuning.
 
 ### Per-Workload SLO Breakdown
 
@@ -34,6 +37,7 @@ This project implements a discrete-event simulation framework for evaluating car
 | **Constrained Hybrid** | **0.00%** | **0.00%** | **0.00%** |
 | Hybrid α=0.7 | 0.00% | 0.24% | 2.50% |
 | Hybrid α=0.5 | 20.61% | 17.20% | 28.68% |
+| Adaptive Hybrid | — | — | — |
 | Carbon-First | 74.87% | 62.48% | 74.76% |
 
 > ResNet-50 (80 ms SLO) is the most latency-sensitive workload. Hybrid α=0.7 generates 2.5% violations on ResNet-50 due to occasional cross-region routing, while Constrained Hybrid's SLO-gating eliminates violations entirely across all three workloads.
@@ -74,7 +78,7 @@ This project implements a discrete-event simulation framework for evaluating car
 
 ### Prior Work Comparison
 ![Prior Work Comparison Table](outputs/graphs/prior_work_comparison.png)
-*Positioning of this work relative to CASPER (2023), CASA (2024), Microsoft Carbon-Aware Computing (2023), and Google CICS (2021). This work uniquely targets live AI inference with per-workload SLO enforcement across a 5-region spatial routing setup.*
+*Positioning of this work relative to CASPER (2023), CASA (2024), Microsoft Carbon-Aware Computing (2023), and Google CICS (2021). This work uniquely targets live AI inference with per-workload SLO enforcement and an adaptive closed-loop controller across a 5-region spatial routing setup.*
 
 ---
 
@@ -88,13 +92,13 @@ This project implements a discrete-event simulation framework for evaluating car
 
 ### Multi-Metric Policy Radar Chart
 ![Radar Policy Comparison](outputs/graphs/premium/radar_policy_comparison.png)
-*Spider chart comparing four representative policies across five normalized performance dimensions: Latency Score, P95 Score, SLO Compliance, Carbon Reduction, and Carbon Efficiency. Constrained Hybrid dominates across all five axes simultaneously.*
+*Spider chart comparing four representative policies — Latency-First, Hybrid α=0.7, Constrained Hybrid, and Adaptive Hybrid — across five normalized performance dimensions: Latency Score, P95 Score, SLO Compliance, Carbon Reduction, and Carbon Efficiency. Constrained Hybrid dominates across all five axes simultaneously.*
 
 ---
 
 ### Latency CDF by Policy
 ![Latency CDF](outputs/graphs/premium/latency_cdf.png)
-*Empirical CDF of end-to-end request latency per policy. Vertical lines mark the per-workload SLO thresholds (80 ms ResNet-50, 100 ms BERT-base, 150 ms BERT-large). Latency-First and Constrained Hybrid cross the 95th-percentile threshold well within all SLO bounds.*
+*Empirical CDF of end-to-end request latency per policy. Vertical lines mark the per-workload SLO thresholds (80 ms ResNet-50, 100 ms BERT-base, 150 ms BERT-large). Latency-First and Constrained Hybrid cross the 95th-percentile threshold well within all SLO bounds. Adaptive Hybrid tracks close to Constrained Hybrid due to its dynamic α convergence.*
 
 ---
 
@@ -146,6 +150,7 @@ python premium_figures.py
 ## All outputs are written to:
 
 - outputs/tables/ — simulation_results.csv, per_workload_results.csv
+- outputs/data/ — carbon_intensity_traces.csv, latency_matrix.csv
 - outputs/graphs/ — Figures 1–5 + prior work comparison table (PNG)
 - outputs/graphs/premium/ — 5 additional research-grade figures
 
@@ -182,13 +187,24 @@ Global min-max normalization ensures α is a stable, consistent weight across al
 
 ---
 
+## Adaptive Hybrid — Controller Details
+The Adaptive Hybrid controller maintains a separate α per workload and updates it after every request using a sliding window P95 estimate:
+
+-- Headroom > 30% → shift carbon-aware (lower α) — lots of SLO budget available
+-- Headroom < 10% → shift latency-safe (raise α) — SLO is tight
+-- Comfortable zone → soft EMA pull toward neutral α=0.5
+Controller constants: window=200 requests, α step=0.02, α bounds=[0.10, 0.90], EMA factor=0.05, minimum observations=50.
+
+---
+
 ## 🔧 Advanced Configuration
 
 - Add custom policies: Implement a routing function in `src/policies.py` and register it in the `policy_configs` list in `src/simulation.py`.
 - Add new workloads or regions: Update `WORKLOADS` or `REGIONS` in `src/config.py` — the simulation adapts automatically.
 - Adjust SLO thresholds: Modify `slo_threshold_ms` per workload in `config.py` to model stricter or more relaxed SLO regimes.
 - Extend the α sweep: Add values to `HYBRID_ALPHA_VALUES` in `config.py` for a finer-grained trade-off curve.
-- 
+- Tune the Adaptive controller: Modify`WINDOW_SIZE`, `ALPHA_STEP`, `HEADROOM_RELAX`, and `HEADROOM_TIGHT` constants in `simulation.py`.
+  
 ---
 
 ## 🔁 Reproducibility
