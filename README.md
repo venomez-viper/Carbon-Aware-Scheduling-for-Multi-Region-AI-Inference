@@ -166,9 +166,11 @@ Carbon-Aware-Scheduling-for-Multi-Region-AI-Inference/
 │   ├── metrics.py           # Standard figure generation (Figures 1–5 + prior work table)
 │   └── premium_figures.py   # Premium research figures (heatmap, radar, CDF, bubble, dual-bar)
 ├── outputs/
-│   ├── graphs/              # All generated figures
-│   │   └── premium/         # Premium research figures
-│   └── tables/              # simulation_results.csv, per_workload_results.csv
+│   ├── data/               # carbon_intensity_traces.csv, latency_matrix.csv
+│   ├── graphs/             # All generated figures
+│   │   └── premium/        # Premium research figures
+│   └── tables/             # simulation_results.csv, per_workload_results.csv
+├── .gitignore
 ├── README.md
 └── requirements.txt
 ```
