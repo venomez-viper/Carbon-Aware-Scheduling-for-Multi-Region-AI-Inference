@@ -4,7 +4,7 @@
 
 This project implements a discrete-event simulation framework for evaluating carbon-aware request routing strategies across five cloud regions. It quantifies the trade-offs between network latency, SLO compliance, and grid carbon intensity under six scheduling policies — Latency-First, Carbon-First, Hybrid (α-sweep), Constrained Hybrid, and **Adaptive Hybrid** — across three representative AI inference workloads (BERT-base, BERT-large, ResNet-50), each with distinct SLO thresholds and inference time profiles.
 
-**Team:** Akash Anipakalu Giridhar · Yogith Ramanan · Brandon Youngkrantz · Alexandre Corret 
+**Team:** Akash Anipakalu Giridhar · Yogith Ramanan t 
 
 ---
 
